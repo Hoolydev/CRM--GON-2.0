@@ -5,10 +5,14 @@ import { toast } from "sonner";
 
 export function AdminView() {
   const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string>("");
   
   const systemStats = useQuery(api.admin.getSystemStats, {});
   const invalidUsers = useQuery(api.admin.getInvalidUsers, {});
+  const allUsers = useQuery(api.userManagement.getAllUsers, {});
   const cleanupInvalidUsers = useMutation(api.admin.cleanupInvalidUsers);
+  const deleteUserByEmail = useMutation(api.userManagement.deleteUserByEmail);
 
   const handleCleanupInvalidUsers = async () => {
     if (!confirm("Tem certeza que deseja excluir todos os usuários inválidos? Esta ação não pode ser desfeita.")) {
@@ -21,6 +25,22 @@ export function AdminView() {
       setShowCleanupModal(false);
     } catch (error) {
       toast.error("Erro ao limpar usuários inválidos");
+    }
+  };
+
+  const handleDeleteSpecificUser = async () => {
+    if (!userToDelete.trim()) {
+      toast.error("Digite um email válido");
+      return;
+    }
+
+    try {
+      const result = await deleteUserByEmail({ email: userToDelete });
+      toast.success(result.message);
+      setShowDeleteModal(false);
+      setUserToDelete("");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao deletar usuário");
     }
   };
 
@@ -116,12 +136,20 @@ export function AdminView() {
                   {invalidUsers.length} usuário{invalidUsers.length > 1 ? 's' : ''} com e-mails inválidos ou não autorizados
                 </p>
               </div>
-              <button
-                onClick={() => setShowCleanupModal(true)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                Limpar Usuários Inválidos
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowCleanupModal(true)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Limpar Usuários Inválidos
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Deletar Usuário Específico
+                </button>
+              </div>
             </div>
           </div>
           
@@ -226,6 +254,59 @@ export function AdminView() {
           <p className="text-gray-600">
             Não há usuários inválidos no sistema. Todos os usuários possuem e-mails válidos do domínio @gonsolutions.com.
           </p>
+        </div>
+      )}
+
+      {/* Modal para Deletar Usuário Específico */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Deletar Usuário</h3>
+                <p className="text-gray-600">Digite o email do usuário a ser deletado</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email do Usuário
+              </label>
+              <input
+                type="email"
+                value={userToDelete}
+                onChange={(e) => setUserToDelete(e.target.value)}
+                placeholder="exemplo@gonsolutions.com"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                As oportunidades do usuário serão transferidas para você (admin).
+              </p>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setUserToDelete("");
+                }}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteSpecificUser}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                Deletar Usuário
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

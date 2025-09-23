@@ -22,7 +22,7 @@ export function OpportunitiesView() {
     api.opportunities.listByStage,
     selectedFunnelId ? { 
       funnelId: selectedFunnelId as any,
-      createdBy: selectedResponsibleId === 'mine' ? loggedInUser?._id : (selectedResponsibleId ? selectedResponsibleId as any : undefined)
+      createdBy: selectedResponsibleId === 'mine' ? loggedInUser?._id : (selectedResponsibleId && selectedResponsibleId !== '' ? selectedResponsibleId as any : undefined)
     } : "skip"
   );
   const contacts = useQuery(api.contacts.list, {});

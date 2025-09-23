@@ -84,7 +84,7 @@ export const listByStage = query({
         .query("opportunities")
         .withIndex("by_funnel", (q) => q.eq("funnelId", funnelId));
       
-      if (args.createdBy) {
+      if (args.createdBy !== undefined && args.createdBy !== null) {
         query = query.filter((q) => q.eq(q.field("createdBy"), args.createdBy));
       }
       
@@ -93,7 +93,7 @@ export const listByStage = query({
       let query = ctx.db
         .query("opportunities");
       
-      if (args.createdBy) {
+      if (args.createdBy !== undefined && args.createdBy !== null) {
         query = query.filter((q) => q.eq(q.field("createdBy"), args.createdBy));
       }
       
