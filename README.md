@@ -69,6 +69,36 @@ npx convex dev
 npm run dev
 ```
 
+## 🚀 Deploy na Vercel
+
+### Pré-requisitos
+1. Conta na [Vercel](https://vercel.com)
+2. Projeto Convex configurado
+
+### Passos para Deploy
+
+1. **Configure o Convex para produção:**
+```bash
+npx convex deploy --prod
+```
+
+2. **Faça push das alterações:**
+```bash
+git add .
+git commit -m "Configure for Vercel deployment"
+git push
+```
+
+3. **Na Vercel:**
+   - Conecte seu repositório GitHub
+   - Adicione a variável de ambiente `CONVEX_DEPLOY_KEY`
+   - Execute o deploy
+
+### ⚠️ Importante para Deploy
+- Certifique-se de que o Convex está configurado e deployado em produção
+- Adicione a variável `CONVEX_DEPLOY_KEY` nas configurações da Vercel
+- O build inclui `convex deploy` para gerar os arquivos necessários
+
 ## 🚀 Funcionalidades Especiais
 
 ### Sistema de Alertas de Tarefas Atrasadas

@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "installCommand": "npm install",
+  "env": {
+    "CONVEX_DEPLOY_KEY": "@convex-deploy-key"
+  }
+}
