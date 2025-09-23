@@ -1,0 +1,7 @@
+# Ignore development files
+.convex/
+node_modules/
+*.log
+
+# Keep generated files for build
+!convex/_generated/
