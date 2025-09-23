@@ -5,6 +5,7 @@ import { CompaniesView } from "./CompaniesView";
 import { ContactsView } from "./ContactsView";
 import { OpportunitiesView } from "./OpportunitiesView";
 import { ActivitiesView } from "./ActivitiesView";
+import { AdminView } from "./AdminView";
 
 interface CRMDashboardProps {
   currentView: string;
@@ -25,6 +26,10 @@ export function CRMDashboard({ currentView }: CRMDashboardProps) {
   
   if (currentView === "activities") {
     return <ActivitiesView />;
+  }
+  
+  if (currentView === "admin") {
+    return <AdminView />;
   }
 
   return <DashboardOverview />;

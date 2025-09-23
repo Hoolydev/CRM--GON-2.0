@@ -249,6 +249,11 @@ export function OpportunitiesView() {
           >
             <option value="">Todas negociações</option>
             <option value="mine">Minhas negociações</option>
+            {users?.map((user) => (
+              <option key={user._id} value={user._id}>
+                {user.name || user.email}
+              </option>
+            ))}
           </select>
         </div>
 

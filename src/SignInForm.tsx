@@ -3,12 +3,21 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, FormEvent } from "react";
 import { toast } from "sonner";
 import { ConvexError } from "convex/values";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Query para validar usuário (apenas para signUp)
+  const [emailToValidate, setEmailToValidate] = useState<string>("");
+  const userValidation = useQuery(
+    api.validUsers.isValidUser,
+    emailToValidate && flow === "signUp" ? { email: emailToValidate } : "skip"
+  );
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -39,6 +48,28 @@ export function SignInForm() {
               setError("Apenas emails do domínio @gonsolutions.com são permitidos para cadastro.");
               setSubmitting(false);
               return;
+            }
+            
+            // Validação de usuário válido para cadastro
+            if (flow === "signUp") {
+              setEmailToValidate(email);
+              
+              // Lista de usuários válidos da empresa
+              const validUsers = [
+                "admin@gonsolutions.com",
+                "gerencia@gonsolutions.com",
+                "vendas@gonsolutions.com",
+                "suporte@gonsolutions.com",
+                "financeiro@gonsolutions.com",
+                "marketing@gonsolutions.com",
+                "ti@gonsolutions.com",
+              ];
+              
+              if (!validUsers.includes(email.toLowerCase())) {
+                setError("Não foi possível criar a conta. O e-mail informado não é válido ou não pertence a um usuário ativo.");
+                setSubmitting(false);
+                return;
+              }
             }
             
             formData.set("flow", flow);
