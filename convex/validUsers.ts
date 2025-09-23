@@ -4,14 +4,11 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 
 // Lista de usuários válidos da empresa Gon Solutions
 const VALID_USERS = [
-  "admin@gonsolutions.com",
-  "gerencia@gonsolutions.com",
-  "vendas@gonsolutions.com",
-  "suporte@gonsolutions.com",
-  "financeiro@gonsolutions.com",
-  "marketing@gonsolutions.com",
-  "ti@gonsolutions.com",
-  // Adicione mais usuários conforme necessário
+  "diretordearte@gonsolutions.com",    // Gabriel - Diretor de Arte
+  "sydney.queiroz@gonsolutions.com",   // Sydney - Corrigido de gonsolutons.com
+  "comercial@gonsolutions.com",        // Ana Laura - Comercial
+  "oliveira@gonsolutions.com",         // Oliveira
+  "juridico@gonsolutions.com",         // Larissa - Jurídico
 ];
 
 export const isValidUser = query({

@@ -3,8 +3,6 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, FormEvent } from "react";
 import { toast } from "sonner";
 import { ConvexError } from "convex/values";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -12,12 +10,6 @@ export function SignInForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Query para validar usuário (apenas para signUp)
-  const [emailToValidate, setEmailToValidate] = useState<string>("");
-  const userValidation = useQuery(
-    api.validUsers.isValidUser,
-    emailToValidate && flow === "signUp" ? { email: emailToValidate } : "skip"
-  );
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -52,17 +44,13 @@ export function SignInForm() {
             
             // Validação de usuário válido para cadastro
             if (flow === "signUp") {
-              setEmailToValidate(email);
-              
               // Lista de usuários válidos da empresa
               const validUsers = [
-                "admin@gonsolutions.com",
-                "gerencia@gonsolutions.com",
-                "vendas@gonsolutions.com",
-                "suporte@gonsolutions.com",
-                "financeiro@gonsolutions.com",
-                "marketing@gonsolutions.com",
-                "ti@gonsolutions.com",
+                "diretordearte@gonsolutions.com",
+                "sydney.queiroz@gonsolutions.com",
+                "comercial@gonsolutions.com",
+                "oliveira@gonsolutions.com",
+                "juridico@gonsolutions.com",
               ];
               
               if (!validUsers.includes(email.toLowerCase())) {
