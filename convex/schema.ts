@@ -12,7 +12,17 @@ const applicationTables = {
     address: v.optional(v.string()),
     size: v.optional(v.string()),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
+    // Legacy fields kept optional to satisfy existing data
+    cnpj: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+    settings: v.optional(v.object({
+      autoDispatch: v.optional(v.boolean()),
+      requirePhotos: v.optional(v.number()),
+      requireVideos: v.optional(v.number()),
+      slaHours: v.optional(v.number()),
+    })),
+    // Temporarily optional to unblock dev server due to legacy data
+    createdBy: v.optional(v.id("users")),
   }).index("by_created_by", ["createdBy"]),
 
   contacts: defineTable({

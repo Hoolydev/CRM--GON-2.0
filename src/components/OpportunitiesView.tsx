@@ -1,4 +1,8 @@
 import { useQuery, useMutation } from "convex/react";
+// Declaração de módulo para evitar erro de tipagem quando o arquivo gerado do Convex não está presente
+declare module "../../convex/_generated/api" {
+  export const api: any;
+}
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -18,12 +22,16 @@ export function OpportunitiesView() {
   const users = useQuery(api.users.list, {});
   const loggedInUser = useQuery(api.auth.loggedInUser);
   const createDefaultFunnel = useMutation(api.funnels.createDefaultFunnel);
+  // Quando um usuário específico é selecionado, priorizamos o filtro por createdBy
+  const responsibleFilterUserId = selectedResponsibleId === 'mine'
+    ? loggedInUser?._id
+    : (selectedResponsibleId && selectedResponsibleId !== '' ? selectedResponsibleId : undefined);
+
   const opportunities = useQuery(
     api.opportunities.listByStage,
-    selectedFunnelId ? { 
-      funnelId: selectedFunnelId as any,
-      createdBy: selectedResponsibleId === 'mine' ? loggedInUser?._id : (selectedResponsibleId && selectedResponsibleId !== '' ? selectedResponsibleId as any : undefined)
-    } : "skip"
+    responsibleFilterUserId
+      ? ({ createdBy: responsibleFilterUserId } as any)
+      : (selectedFunnelId ? ({ funnelId: selectedFunnelId } as any) : "skip")
   );
   const contacts = useQuery(api.contacts.list, {});
   const companies = useQuery(api.companies.list);
@@ -63,7 +71,7 @@ export function OpportunitiesView() {
     if (funnels && funnels.length === 0) {
       createDefaultFunnel({});
     } else if (funnels && funnels.length > 0 && !selectedFunnelId) {
-      const defaultFunnel = funnels.find(f => f.isDefault) || funnels[0];
+      const defaultFunnel = funnels.find((f: any) => f.isDefault) || funnels[0];
       setSelectedFunnelId(defaultFunnel._id);
       
       // Migrate opportunities without funnelId
@@ -77,7 +85,7 @@ export function OpportunitiesView() {
     }
   }, [funnels, selectedFunnelId, createDefaultFunnel, migrateToDefaultFunnel]);
 
-  const selectedFunnel = funnels?.find(f => f._id === selectedFunnelId);
+  const selectedFunnel = funnels?.find((f: any) => f._id === selectedFunnelId) as any;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -234,8 +242,9 @@ export function OpportunitiesView() {
             value={selectedFunnelId}
             onChange={(e) => setSelectedFunnelId(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={selectedResponsibleId !== '' && selectedResponsibleId !== 'mine'}
           >
-            {funnels.map((funnel) => (
+            {funnels.map((funnel: any) => (
               <option key={funnel._id} value={funnel._id}>
                 {funnel.name} {funnel.isDefault ? "(Padrão)" : ""}
               </option>
@@ -249,7 +258,7 @@ export function OpportunitiesView() {
           >
             <option value="">Todas negociações</option>
             <option value="mine">Minhas negociações</option>
-            {users?.map((user) => (
+            {users?.map((user: any) => (
               <option key={user._id} value={user._id}>
                 {user.name || user.email}
               </option>
@@ -307,105 +316,130 @@ export function OpportunitiesView() {
       </div>
 
       {/* Kanban View */}
-      {viewMode === "kanban" && selectedFunnel && opportunities && (
+      {viewMode === "kanban" && opportunities && (
         <div className="flex gap-6 flex-1 min-h-0 pb-4 overflow-x-auto">
-          {selectedFunnel.stages.map((stage) => {
-            const stageOpportunities = opportunities[stage.id] || [];
-            const stageValue = stageOpportunities.reduce((sum, opp) => sum + opp.value, 0);
-            
-            return (
-              <div
-                key={stage.id}
-                className="flex-1 bg-gray-50 rounded-lg p-4 flex flex-col min-w-[280px] border border-gray-200"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, stage.id)}
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{stage.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {stageOpportunities.length} oportunidades • {formatCurrency(stageValue)}
-                    </p>
+          {(() => {
+            const DEFAULT_STAGES: { id: string; name: string; color: string; order: number }[] = [
+              { id: "prospecting", name: "Prospecção", color: "bg-gray-100 text-gray-800", order: 1 },
+              { id: "qualification", name: "Qualificação", color: "bg-blue-100 text-blue-800", order: 2 },
+              { id: "proposal", name: "Proposta", color: "bg-yellow-100 text-yellow-800", order: 3 },
+              { id: "negotiation", name: "Negociação", color: "bg-orange-100 text-orange-800", order: 4 },
+              { id: "closed_won", name: "Fechado - Ganho", color: "bg-green-100 text-green-800", order: 5 },
+              { id: "closed_lost", name: "Fechado - Perdido", color: "bg-red-100 text-red-800", order: 6 },
+            ];
+
+            const defaultStageMap = Object.fromEntries(DEFAULT_STAGES.map(s => [s.id, s]));
+
+            const stageDefs = selectedFunnel
+              ? selectedFunnel.stages
+              : Object.keys(opportunities).map((stageId) => ({
+                  id: stageId,
+                  name: defaultStageMap[stageId]?.name || stageId,
+                  color: defaultStageMap[stageId]?.color || "bg-gray-100 text-gray-800",
+                  order: defaultStageMap[stageId]?.order || 999,
+                }));
+
+            const sortedStageDefs = stageDefs.sort((a: any, b: any) => (a.order || 999) - (b.order || 999));
+
+            return sortedStageDefs.map((stage: any) => {
+              const oppByStage = opportunities as Record<string, any[]>;
+              const stageOpportunities = oppByStage[stage.id] || [];
+              const stageValue = stageOpportunities.reduce((sum: number, opp: any) => sum + opp.value, 0);
+
+              return (
+                <div
+                  key={stage.id}
+                  className="flex-1 bg-gray-50 rounded-lg p-4 flex flex-col min-w-[280px] border border-gray-200"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, stage.id)}
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{stage.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {stageOpportunities.length} oportunidades • {formatCurrency(stageValue)}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${stage.color}`}>
+                      {stageOpportunities.length}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${stage.color}`}>
-                    {stageOpportunities.length}
-                  </span>
-                </div>
-                
-                <div className="space-y-3 flex-1 overflow-y-auto">
-                  {stageOpportunities.map((opportunity) => (
-                    <div
-                      key={opportunity._id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, opportunity)}
-                      onClick={() => handleOpenOpportunityDetails(opportunity)}
-                      className="bg-white p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium text-gray-900 text-sm">{opportunity.title}</h4>
-                        <div className="flex space-x-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditOpportunity(opportunity);
-                            }}
-                            className="text-blue-500 hover:text-blue-700 text-sm"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteOpportunity(opportunity._id);
-                            }}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            🗑️
-                          </button>
+
+                  <div className="space-y-3 flex-1 overflow-y-auto">
+                    {stageOpportunities.map((opportunity: any) => (
+                      <div
+                        key={opportunity._id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, opportunity)}
+                        onClick={() => handleOpenOpportunityDetails(opportunity)}
+                        className="bg-white p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium text-gray-900 text-sm">{opportunity.title}</h4>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditOpportunity(opportunity);
+                              }}
+                              className="text-blue-500 hover:text-blue-700 text-sm"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteOpportunity(opportunity._id);
+                              }}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="text-lg font-bold text-green-600 mb-2">
+                          {formatCurrency(opportunity.value)}
+                        </p>
+
+                        {opportunity.contactName && (
+                          <p className="text-sm text-gray-600 mb-1">
+                            👤 {opportunity.contactName}
+                          </p>
+                        )}
+                        {opportunity.companyName && (
+                          <p className="text-sm text-gray-600 mb-1">
+                            🏢 {opportunity.companyName}
+                          </p>
+                        )}
+                        {opportunity.createdByName && (
+                          <p className="text-sm text-gray-600 mb-2">
+                            Responsável: {opportunity.createdByName}
+                          </p>
+                        )}
+
+                        <div className="flex justify-between items-center text-sm text-gray-500">
+                          <span>Prob: {opportunity.probability}%</span>
+                          <span>📅 {new Date(opportunity.expectedCloseDate).toLocaleDateString('pt-BR')}</span>
                         </div>
                       </div>
-                      
-                      <p className="text-lg font-bold text-green-600 mb-2">
-                        {formatCurrency(opportunity.value)}
-                      </p>
-                      
-                      {opportunity.contactName && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          👤 {opportunity.contactName}
-                        </p>
-                      )}
-                      {opportunity.companyName && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          🏢 {opportunity.companyName}
-                        </p>
-                      )}
-                      {opportunity.createdByName && (
-                        <p className="text-sm text-gray-600 mb-2">
-                          Responsável: {opportunity.createdByName}
-                        </p>
-                      )}
-                      
-                      <div className="flex justify-between items-center text-sm text-gray-500">
-                        <span>Prob: {opportunity.probability}%</span>
-                        <span>📅 {new Date(opportunity.expectedCloseDate).toLocaleDateString('pt-BR')}</span>
+                    ))}
+
+                    {stageOpportunities.length === 0 && (
+                      <div className="text-center py-8 text-gray-400">
+                        <p className="text-sm">Nenhuma oportunidade</p>
                       </div>
-                    </div>
-                  ))}
-                  
-                  {stageOpportunities.length === 0 && (
-                    <div className="text-center py-8 text-gray-400">
-                      <p className="text-sm">Nenhuma oportunidade</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       )}
 
       {/* Table View */}
-      {viewMode === "table" && selectedFunnel && opportunities && (
+      {viewMode === "table" && opportunities && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -438,8 +472,19 @@ export function OpportunitiesView() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {Object.values(opportunities).flat().map((opportunity) => {
-                  const stageInfo = selectedFunnel.stages.find(s => s.id === opportunity.stage);
+                {(() => {
+                  const oppByStage = opportunities as Record<string, any[]>;
+                  const allOpps: any[] = Object.values(oppByStage).flat();
+                  return allOpps.map((opportunity: any) => {
+                  const DEFAULT_STAGE_INFO: Record<string, { name: string; color: string }> = {
+                    prospecting: { name: "Prospecção", color: "bg-gray-100 text-gray-800" },
+                    qualification: { name: "Qualificação", color: "bg-blue-100 text-blue-800" },
+                    proposal: { name: "Proposta", color: "bg-yellow-100 text-yellow-800" },
+                    negotiation: { name: "Negociação", color: "bg-orange-100 text-orange-800" },
+                    closed_won: { name: "Fechado - Ganho", color: "bg-green-100 text-green-800" },
+                    closed_lost: { name: "Fechado - Perdido", color: "bg-red-100 text-red-800" },
+                  };
+                  const stageInfo = selectedFunnel?.stages.find((s: any) => s.id === opportunity.stage) || DEFAULT_STAGE_INFO[opportunity.stage];
                   return (
                     <tr key={opportunity._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -493,7 +538,8 @@ export function OpportunitiesView() {
                       </td>
                     </tr>
                   );
-                })}
+                });
+                })()}
               </tbody>
             </table>
           </div>
@@ -573,7 +619,7 @@ export function OpportunitiesView() {
                     onChange={(e) => setOpportunityFormData({ ...opportunityFormData, stage: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {selectedFunnel?.stages.map((stage) => (
+                    {selectedFunnel?.stages.map((stage: any) => (
                       <option key={stage.id} value={stage.id}>
                         {stage.name}
                       </option>
@@ -604,7 +650,7 @@ export function OpportunitiesView() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Selecione um contato...</option>
-                    {contacts.map((contact) => (
+                    {contacts.map((contact: any) => (
                       <option key={contact._id} value={contact._id}>
                         {contact.firstName} {contact.lastName}
                       </option>
@@ -622,7 +668,7 @@ export function OpportunitiesView() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Selecione uma empresa...</option>
-                    {companies.map((company) => (
+                    {companies.map((company: any) => (
                       <option key={company._id} value={company._id}>
                         {company.name}
                       </option>
