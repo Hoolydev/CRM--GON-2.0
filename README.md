@@ -1,4 +1,4 @@
-# CRM Gon Solutions AI
+# Cyberg CRM
 
 Sistema CRM moderno e completo desenvolvido com React, TypeScript, Tailwind CSS e Convex.
 
@@ -142,7 +142,7 @@ Este projeto está sob a licença MIT.
 
 ## 👨‍💻 Desenvolvido por
 
-Hoolydev - CRM Gon Solutions AI
+Hoolydev - Cyberg CRM
 
 ---
 

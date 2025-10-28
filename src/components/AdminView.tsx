@@ -200,6 +200,58 @@ export function AdminView() {
         </div>
       )}
 
+      {/* Lista de Todos os Usuários */}
+      {allUsers && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Todos os Usuários</h2>
+                <p className="text-gray-600 mt-1">
+                  {allUsers.length} usuário{allUsers.length > 1 ? 's' : ''} cadastrados
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nome
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    E-mail
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Data de Criação
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {allUsers.map((user) => (
+                  <tr key={user._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {user.name || 'Usuário'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {user.email || 'Sem e-mail'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user._creationTime).toLocaleDateString('pt-BR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Confirmação de Limpeza */}
       {showCleanupModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -228,80 +280,57 @@ export function AdminView() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowCleanupModal(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCleanupInvalidUsers}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
               >
-                Confirmar Exclusão
+                Confirmar Limpeza
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {invalidUsers.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Sistema Limpo!</h3>
-          <p className="text-gray-600">
-            Não há usuários inválidos no sistema. Todos os usuários possuem e-mails válidos do domínio @gonsolutions.com.
-          </p>
-        </div>
-      )}
-
-      {/* Modal para Deletar Usuário Específico */}
+      {/* Modal de Deleção de Usuário Específico */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4">
                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Deletar Usuário</h3>
-                <p className="text-gray-600">Digite o email do usuário a ser deletado</p>
+                <h3 className="text-lg font-bold text-gray-900">Deletar Usuário Específico</h3>
+                <p className="text-gray-600">Informe o e-mail do usuário</p>
               </div>
             </div>
-            
+
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email do Usuário
-              </label>
               <input
                 type="email"
                 value={userToDelete}
                 onChange={(e) => setUserToDelete(e.target.value)}
-                placeholder="exemplo@gonsolutions.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="email@exemplo.com"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                As oportunidades do usuário serão transferidas para você (admin).
-              </p>
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setUserToDelete("");
-                }}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDeleteSpecificUser}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
               >
                 Deletar Usuário
               </button>

@@ -9,9 +9,10 @@ import { AdminView } from "./AdminView";
 
 interface CRMDashboardProps {
   currentView: string;
+  hideValues?: boolean;
 }
 
-export function CRMDashboard({ currentView }: CRMDashboardProps) {
+export function CRMDashboard({ currentView, hideValues = false }: CRMDashboardProps) {
   if (currentView === "companies") {
     return <CompaniesView />;
   }
@@ -21,7 +22,7 @@ export function CRMDashboard({ currentView }: CRMDashboardProps) {
   }
   
   if (currentView === "opportunities") {
-    return <OpportunitiesView />;
+    return <OpportunitiesView hideValues={hideValues} />;
   }
   
   if (currentView === "activities") {
@@ -32,10 +33,10 @@ export function CRMDashboard({ currentView }: CRMDashboardProps) {
     return <AdminView />;
   }
 
-  return <DashboardOverview />;
+  return <DashboardOverview hideValues={hideValues} />;
 }
 
-function DashboardOverview() {
+function DashboardOverview({ hideValues = false }: { hideValues?: boolean }) {
   const stats = useQuery(api.dashboard.getStats);
   const recentActivity = useQuery(api.dashboard.getRecentActivity);
 
@@ -60,6 +61,8 @@ function DashboardOverview() {
       currency: 'BRL'
     }).format(value);
   };
+
+  const maskCurrency = (value: number) => hideValues ? "R$ •••••" : formatCurrency(value);
 
   return (
     <div className="p-8">
@@ -151,11 +154,11 @@ function DashboardOverview() {
             <div className="grid grid-cols-1 gap-4">
               <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
                 <span className="text-sm font-medium text-gray-600">Valor Total</span>
-                <span className="font-bold text-xl text-gray-900">{formatCurrency(stats.opportunities.totalValue)}</span>
+                <span className="font-bold text-xl text-gray-900">{maskCurrency(stats.opportunities.totalValue)}</span>
               </div>
               <div className="flex justify-between items-center p-4 bg-green-50 rounded-xl">
                 <span className="text-sm font-medium text-gray-600">Vendas Fechadas</span>
-                <span className="font-bold text-xl text-green-600">{formatCurrency(stats.opportunities.wonValue)}</span>
+                <span className="font-bold text-xl text-green-600">{maskCurrency(stats.opportunities.wonValue)}</span>
               </div>
               <div className="flex justify-between items-center p-4 bg-blue-50 rounded-xl">
                 <span className="text-sm font-medium text-gray-600">Taxa de Conversão</span>
@@ -171,7 +174,7 @@ function DashboardOverview() {
                     <span className="text-sm font-medium capitalize text-gray-700">{stage.replace('_', ' ')}</span>
                     <div className="text-right">
                       <div className="text-sm font-semibold text-gray-900">{data.count} oportunidades</div>
-                      <div className="text-xs text-gray-500">{formatCurrency(data.value)}</div>
+                      <div className="text-xs text-gray-500">{maskCurrency(data.value)}</div>
                     </div>
                   </div>
                 ))}
@@ -208,7 +211,7 @@ function DashboardOverview() {
                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {activity.type === "call" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />}
                       {activity.type === "email" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />}
-                      {activity.type === "meeting" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />}
+                      {activity.type === "meeting" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />}
                       {activity.type === "task" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
                       {activity.type === "note" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />}
                     </svg>

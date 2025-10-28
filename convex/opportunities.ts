@@ -3,156 +3,15 @@ import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const list = query({
-  args: { funnelId: v.optional(v.id("funnels")), createdBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  args: { status: v.optional(v.string()) },
+  handler: async (ctx: any, args: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-
-    let opportunities;
-    
-    if (args.funnelId !== undefined) {
-      const funnelId = args.funnelId;
-      let query = ctx.db
-        .query("opportunities")
-        .withIndex("by_funnel", (q) => q.eq("funnelId", funnelId))
-        .order("desc");
-      
-      if (args.createdBy) {
-        query = query.filter((q) => q.eq(q.field("createdBy"), args.createdBy));
-      }
-      
-      opportunities = await query.collect();
-    } else {
-      let query = ctx.db
-        .query("opportunities")
-        .order("desc");
-      
-      if (args.createdBy) {
-        query = query.filter((q) => q.eq(q.field("createdBy"), args.createdBy));
-      }
-      
-      opportunities = await query.collect();
+    let q = ctx.db.query("opportunities").withIndex("by_created_by", (qi: any) => qi.eq("createdBy", userId));
+    if (args.status) {
+      q = ctx.db.query("opportunities").withIndex("by_status", (qi: any) => qi.eq("status", args.status));
     }
-
-    // Get related data for each opportunity
-    const opportunitiesWithData = await Promise.all(
-      opportunities.map(async (opportunity) => {
-        let contactName = null;
-        let companyName = null;
-        let createdByName = null;
-
-        if (opportunity.contactId) {
-          const contact = await ctx.db.get(opportunity.contactId);
-          if (contact) {
-            contactName = `${contact.firstName} ${contact.lastName}`;
-          }
-        }
-
-        if (opportunity.companyId) {
-          const company = await ctx.db.get(opportunity.companyId);
-          if (company) {
-            companyName = company.name;
-          }
-        }
-
-        if (opportunity.createdBy) {
-          const user = await ctx.db.get(opportunity.createdBy);
-          if (user) {
-            createdByName = user.name || user.email || 'Usuário';
-          }
-        }
-
-        return { ...opportunity, contactName, companyName, createdByName };
-      })
-    );
-
-    return opportunitiesWithData;
-  },
-});
-
-export const listByStage = query({
-  args: { funnelId: v.optional(v.id("funnels")), createdBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    let opportunities;
-    
-    if (args.funnelId !== undefined) {
-      const funnelId = args.funnelId;
-      let query = ctx.db
-        .query("opportunities")
-        .withIndex("by_funnel", (q) => q.eq("funnelId", funnelId));
-      
-      if (args.createdBy !== undefined && args.createdBy !== null) {
-        query = query.filter((q) => q.eq(q.field("createdBy"), args.createdBy));
-      }
-      
-      opportunities = await query.collect();
-    } else {
-      let query = ctx.db
-        .query("opportunities");
-      
-      if (args.createdBy !== undefined && args.createdBy !== null) {
-        query = query.filter((q) => q.eq(q.field("createdBy"), args.createdBy));
-      }
-      
-      opportunities = await query.collect();
-    }
-
-    // Get related data for each opportunity
-    const opportunitiesWithData = await Promise.all(
-      opportunities.map(async (opportunity) => {
-        let contactName = null;
-        let companyName = null;
-        let createdByName = null;
-
-        if (opportunity.contactId) {
-          const contact = await ctx.db.get(opportunity.contactId);
-          if (contact) {
-            contactName = `${contact.firstName} ${contact.lastName}`;
-          }
-        }
-
-        if (opportunity.companyId) {
-          const company = await ctx.db.get(opportunity.companyId);
-          if (company) {
-            companyName = company.name;
-          }
-        }
-
-        if (opportunity.createdBy) {
-          const user = await ctx.db.get(opportunity.createdBy);
-          if (user) {
-            createdByName = user.name || user.email || 'Usuário';
-          }
-        }
-
-        return { ...opportunity, contactName, companyName, createdByName };
-      })
-    );
-
-    // Group by stage
-    const groupedByStage: Record<string, typeof opportunitiesWithData> = {};
-    
-    opportunitiesWithData.forEach(opp => {
-      if (!groupedByStage[opp.stage]) {
-        groupedByStage[opp.stage] = [];
-      }
-      groupedByStage[opp.stage].push(opp);
-    });
-
-    // Sort within each stage by order, then by creation time
-    Object.keys(groupedByStage).forEach(stage => {
-      groupedByStage[stage].sort((a, b) => {
-        if (a.order !== undefined && b.order !== undefined) {
-          return a.order - b.order;
-        }
-        return b._creationTime - a._creationTime;
-      });
-    });
-
-    return groupedByStage;
+    return await q.order("desc").collect();
   },
 });
 
@@ -160,32 +19,82 @@ export const create = mutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
-    value: v.number(),
-    stage: v.string(),
-    funnelId: v.optional(v.id("funnels")),
-    probability: v.number(),
-    expectedCloseDate: v.number(),
-    contactId: v.optional(v.id("contacts")),
+    value: v.optional(v.number()),
+    stage: v.optional(v.string()),
+    funnelId: v.id("funnels"),
+    probability: v.optional(v.number()),
+    expectedCloseDate: v.optional(v.number()),
+    status: v.optional(v.union(v.literal("open"), v.literal("won"), v.literal("lost"))),
     companyId: v.optional(v.id("companies")),
+    contactId: v.optional(v.id("contacts")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    // Get the highest order in the stage
-    const stageOpportunities = await ctx.db
+    // calcular ordem no estágio dentro do funil
+    const stage = args.stage ?? "prospecting";
+    const existingInStage = await ctx.db
       .query("opportunities")
-      .withIndex("by_stage", (q) => q.eq("stage", args.stage))
+      .withIndex("by_funnel", (q: any) => q.eq("funnelId", args.funnelId))
       .collect();
+    const countInStage = existingInStage.filter((o: any) => o.stage === stage).length;
+    const order = countInStage + 1;
 
-    const maxOrder = Math.max(0, ...stageOpportunities.map(opp => opp.order || 0));
-
-    return await ctx.db.insert("opportunities", {
-      ...args,
-      assignedTo: userId,
+    const record = {
+      title: args.title,
+      description: args.description,
+      value: args.value,
+      stage,
+      status: args.status ?? "open",
+      companyId: args.companyId,
+      contactId: args.contactId,
       createdBy: userId,
-      order: maxOrder + 1,
-    });
+      funnelId: args.funnelId,
+      order,
+      probability: args.probability,
+      expectedCloseDate: args.expectedCloseDate,
+    };
+
+    return await ctx.db.insert("opportunities", record);
+  },
+});
+
+export const listByStage = query({
+  args: {
+    createdBy: v.optional(v.id("users")),
+    funnelId: v.optional(v.id("funnels")),
+  },
+  handler: async (ctx: any, args: any) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    let items: any[] = [];
+    if (args.createdBy) {
+      items = await ctx.db
+        .query("opportunities")
+        .withIndex("by_created_by", (q: any) => q.eq("createdBy", args.createdBy))
+        .collect();
+    } else if (args.funnelId) {
+      items = await ctx.db
+        .query("opportunities")
+        .withIndex("by_funnel", (q: any) => q.eq("funnelId", args.funnelId))
+        .collect();
+    } else {
+      return {};
+    }
+
+    // agrupar por stage e ordenar pela propriedade order
+    const grouped: Record<string, any[]> = {};
+    for (const opp of items) {
+      const key = opp.stage ?? "prospecting";
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(opp);
+    }
+    for (const key of Object.keys(grouped)) {
+      grouped[key].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    }
+    return grouped;
   },
 });
 
@@ -199,21 +108,39 @@ export const update = mutation({
     funnelId: v.optional(v.id("funnels")),
     probability: v.optional(v.number()),
     expectedCloseDate: v.optional(v.number()),
-    contactId: v.optional(v.id("contacts")),
+    status: v.optional(v.union(v.literal("open"), v.literal("won"), v.literal("lost"))),
     companyId: v.optional(v.id("companies")),
+    contactId: v.optional(v.id("contacts")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+    const current = await ctx.db.get(args.id);
+    if (!current) throw new Error("Opportunity not found");
+    if (current.createdBy !== userId) throw new Error("Not authorized");
 
-    const { id, ...updates } = args;
-    const opportunity = await ctx.db.get(id);
-    
-    if (!opportunity || opportunity.createdBy !== userId) {
-      throw new Error("Opportunity not found");
+    const patch: any = {};
+    for (const key of [
+      "title",
+      "description",
+      "value",
+      "stage",
+      "funnelId",
+      "probability",
+      "expectedCloseDate",
+      "status",
+      "companyId",
+      "contactId",
+    ]) {
+      if (args[key] !== undefined) patch[key] = args[key];
     }
 
-    await ctx.db.patch(id, updates);
+    // garantir status
+    if (patch.status === undefined) {
+      patch.status = current.status ?? "open";
+    }
+
+    await ctx.db.patch(args.id, patch);
   },
 });
 
@@ -223,14 +150,12 @@ export const updateStageAndOrder = mutation({
     stage: v.string(),
     order: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-
-    const opportunity = await ctx.db.get(args.id);
-    if (!opportunity || opportunity.createdBy !== userId) {
-      throw new Error("Opportunity not found");
-    }
+    const current = await ctx.db.get(args.id);
+    if (!current) throw new Error("Opportunity not found");
+    if (current.createdBy !== userId) throw new Error("Not authorized");
 
     await ctx.db.patch(args.id, {
       stage: args.stage,
@@ -241,46 +166,45 @@ export const updateStageAndOrder = mutation({
 
 export const remove = mutation({
   args: { id: v.id("opportunities") },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-
-    const opportunity = await ctx.db.get(args.id);
-    if (!opportunity || opportunity.createdBy !== userId) {
-      throw new Error("Opportunity not found");
-    }
-
+    const current = await ctx.db.get(args.id);
+    if (!current) throw new Error("Opportunity not found");
+    if (current.createdBy !== userId) throw new Error("Not authorized");
     await ctx.db.delete(args.id);
   },
 });
 
 export const migrateToDefaultFunnel = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
     const defaultFunnel = await ctx.db
       .query("funnels")
-      .withIndex("by_created_by", (q) => q.eq("createdBy", userId))
-      .filter((q) => q.eq(q.field("isDefault"), true))
-      .first();
+      .withIndex("by_created_by", (q: any) => q.eq("createdBy", userId))
+      .collect()
+      .then((fs: any[]) => fs.find((f: any) => f.isDefault) ?? fs[0]);
+    if (!defaultFunnel) {
+      return { migrated: 0 };
+    }
 
-    if (!defaultFunnel) return { migrated: 0 };
-
-    const opportunities = await ctx.db
+    const withoutFunnel = await ctx.db
       .query("opportunities")
-      .withIndex("by_created_by", (q) => q.eq("createdBy", userId))
-      .collect();
+      .withIndex("by_created_by", (q: any) => q.eq("createdBy", userId))
+      .collect()
+      .then((ops: any[]) => ops.filter((o: any) => !o.funnelId));
 
     let migrated = 0;
-    for (const opportunity of opportunities) {
-      if (!opportunity.funnelId) {
-        await ctx.db.patch(opportunity._id, {
-          funnelId: defaultFunnel._id,
-        });
-        migrated++;
-      }
+    for (const opp of withoutFunnel) {
+      await ctx.db.patch(opp._id, {
+        funnelId: defaultFunnel._id,
+        stage: opp.stage ?? defaultFunnel.stages[0]?.id ?? "prospecting",
+        order: typeof opp.order === "number" ? opp.order : 0,
+      });
+      migrated++;
     }
 
     return { migrated };

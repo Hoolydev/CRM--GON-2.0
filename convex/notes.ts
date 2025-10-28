@@ -8,21 +8,15 @@ export const list = query({
     companyId: v.optional(v.id("companies")),
     opportunityId: v.optional(v.id("opportunities")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    let query = ctx.db.query("notes").withIndex("by_created_by", (q) => q.eq("createdBy", userId));
-
-    if (args.contactId) {
-      query = ctx.db.query("notes").withIndex("by_contact", (q) => q.eq("contactId", args.contactId));
-    } else if (args.companyId) {
-      query = ctx.db.query("notes").withIndex("by_company", (q) => q.eq("companyId", args.companyId));
-    } else if (args.opportunityId) {
-      query = ctx.db.query("notes").withIndex("by_opportunity", (q) => q.eq("opportunityId", args.opportunityId));
-    }
-
-    return await query.order("desc").collect();
+    let q = ctx.db.query("notes").withIndex("by_created_by", (qi: any) => qi.eq("createdBy", userId));
+    if (args.contactId) q = ctx.db.query("notes").withIndex("by_contact", (qi: any) => qi.eq("contactId", args.contactId));
+    else if (args.companyId) q = ctx.db.query("notes").withIndex("by_company", (qi: any) => qi.eq("companyId", args.companyId));
+    else if (args.opportunityId) q = ctx.db.query("notes").withIndex("by_opportunity", (qi: any) => qi.eq("opportunityId", args.opportunityId));
+    return await q.order("desc").collect();
   },
 });
 
@@ -33,28 +27,9 @@ export const create = mutation({
     companyId: v.optional(v.id("companies")),
     opportunityId: v.optional(v.id("opportunities")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-
-    return await ctx.db.insert("notes", {
-      ...args,
-      createdBy: userId,
-    });
-  },
-});
-
-export const remove = mutation({
-  args: { id: v.id("notes") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const note = await ctx.db.get(args.id);
-    if (!note || note.createdBy !== userId) {
-      throw new Error("Note not found");
-    }
-
-    await ctx.db.delete(args.id);
+    return await ctx.db.insert("notes", { ...args, createdBy: userId });
   },
 });

@@ -65,3 +65,10 @@ jspm_packages/
 # Convex
 .convex/
 convex/_generated/
+
+# Security keys
+jwt_private.pem
+jwt_public.pem
+
+# Legacy generated types
+convex_legacy/_generated/

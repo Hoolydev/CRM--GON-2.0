@@ -21,7 +21,7 @@ export function SignInForm() {
             </svg>
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Gon CRM</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">Cyberg CRM</h1>
         <p className="text-gray-500 text-lg">Sistema de Gestão de Relacionamento com Cliente</p>
       </div>
       
@@ -34,31 +34,6 @@ export function SignInForm() {
             setError(null);
             const formData = new FormData(e.target as HTMLFormElement);
             const email = formData.get("email") as string;
-            
-            // Validação de domínio para cadastro
-            if (flow === "signUp" && !email.endsWith("@gonsolutions.com")) {
-              setError("Apenas emails do domínio @gonsolutions.com são permitidos para cadastro.");
-              setSubmitting(false);
-              return;
-            }
-            
-            // Validação de usuário válido para cadastro
-            if (flow === "signUp") {
-              // Lista de usuários válidos da empresa
-              const validUsers = [
-                "diretordearte@gonsolutions.com",
-                "sydney.queiroz@gonsolutions.com",
-                "comercial@gonsolutions.com",
-                "oliveira@gonsolutions.com",
-                "juridico@gonsolutions.com",
-              ];
-              
-              if (!validUsers.includes(email.toLowerCase())) {
-                setError("Não foi possível criar a conta. O e-mail informado não é válido ou não pertence a um usuário ativo.");
-                setSubmitting(false);
-                return;
-              }
-            }
             
             formData.set("flow", flow);
             try {
